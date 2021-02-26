@@ -10,6 +10,7 @@ export const Wysiwyg = () => {
     var selectedTextStart;
     var selectedTextEnd;
     var selectedText;
+    var mousedownSrcElement;
 
     let [textAreaText, setTextAreaText] = useState('');
     let [historyArr, setHistory] = useState([]);
@@ -18,23 +19,31 @@ export const Wysiwyg = () => {
         setTextAreaText(e.target.value);
     };
     
-    const getSelected = (e) => { 
-        console.log(e.target.name);
-        if(e.target.name === 'wysiwyg') {
-            selectedTextStart = e.target.selectionStart;
-            selectedTextEnd = e.target.selectionEnd;
+    const handleMouseSelectedDown = (e) => { 
+        //console.log("mousedown", e);
+        mousedownSrcElement = e.srcElement.name;
+    }
 
-            selectedText = e.target.value.substring(selectedTextStart, selectedTextEnd);
-            if(selectedText.length <= 0) {
-                return; // stop here if selection length is <= 0
+    const handleMouseSelected = (e) => { 
+        //console.log(e);
+        try {
+            if(e.target.name === 'wysiwyg') {
+                selectedTextStart = e.target.selectionStart;
+                selectedTextEnd = e.target.selectionEnd;
+    
+                selectedText = e.target.value.substring(selectedTextStart, selectedTextEnd);
+                if(selectedText.length <= 0) {
+                    return; // stop here if selection length is <= 0
+                }
+                
+                // log the selection
+                console.log("startPos: " + selectedTextStart, " | endPos: " + selectedTextEnd );
+                console.log("selectedText: " +  selectedText);
+            } else if(e.target.name === "wysiwyg" || mousedownSrcElement === "wysiwyg") { // check that mousedown is initiating from the text editor
+                throw new Error('mouseup is outside of textarea');
             }
-            
-            // log the selection
-            console.log("startPos: " + selectedTextStart, " | endPos: " + selectedTextEnd );
-            console.log("selectedText: " +  selectedText);
-        } else {
-            selectedText = e.view.getSelection().toString();
-            //console.log(e.view.getSelection().toString());
+        } catch (error) {
+            console.error(error);
         }
     }
 
@@ -62,9 +71,7 @@ export const Wysiwyg = () => {
             rtnStr = str;
         } else if(tag === 'ul' || tag === 'ol') {
             if(str.indexOf("\n") > 0) {
-                //console.log(str.indexOf("\n"));
                 let strArr = str.split("\n");
-                //console.log(strArr);
                 rtnStr = `<${tag}>`;
                 strArr.map(item => rtnStr += `<li>${item}</li>`);
                 rtnStr += `</${tag}>`;
@@ -75,16 +82,18 @@ export const Wysiwyg = () => {
             rtnStr = `<${tag}>${str}</${tag}>`;
         }
 
+        console.log("addHtmlTag", rtnStr);
+
         return rtnStr;
     } 
 
-    let getShortcut = (e) => {
-        console.log(e)
-    }
-
-    let updateTextArea = (str) => {
-        try {        
-            if(selectedText.length > 0) {
+    let updateTextArea = (str, keyCode) => {
+        try {            
+            if(keyCode === 13) { // 13 = enter
+                textAreaText += `<p></p>`;
+                setTextAreaText(textAreaText);
+                console.log("updateTextArea", textAreaText);
+            } else if(selectedText.length > 0) {
                 textAreaText = textAreaText.substr(0, selectedTextStart) + str + textAreaText.substr(selectedTextEnd, textAreaText.length);
                 setTextAreaText(textAreaText);
             } else {
@@ -128,8 +137,8 @@ export const Wysiwyg = () => {
     let unorderedList = () => {
         try {
             if(selectedText.length > 0) { // check if any text is selected
-                let boldText = addHtmlTag(selectedText, 'ul');
-                updateTextArea(boldText);
+                let listText = addHtmlTag(selectedText, 'ul');
+                updateTextArea(listText);
                 setHistory(selectedText, 'ul');
                 selectedText = '';
             } else {
@@ -140,14 +149,47 @@ export const Wysiwyg = () => {
         }
     }
 
+    let orderedList = () => {
+        try {
+            if(selectedText.length > 0) { // check if any text is selected
+                let listText = addHtmlTag(selectedText, 'ol');
+                updateTextArea(listText);
+                setHistory(selectedText, 'ol');
+                selectedText = '';
+            } else {
+                throw new Error('selectedText is empty');
+            }
+        } catch(err) {
+            console.error(err);
+        }
+    }
+
+    let handleKeyPressed = (e) => {
+        //e.stopPropagation();
+        if(e.type === 'keydown' || e.type === 'keyup') {
+            console.log(e);
+            if(e.keyCode === 13) {
+                updateTextArea(textAreaText, 13);
+                setHistory('', 'p');
+                console.log(textAreaText);
+                
+            }
+        }
+    }
+
     // window events
-    useEvent('mouseup', getSelected);
+    useEvent('mousedown', handleMouseSelectedDown);
+    useEvent('mouseup', handleMouseSelected);
+    useEvent('keyup', handleKeyPressed);
 
     return (
-        <>
-            <button onClick={italicize}>i</button>
-            <button onClick={bold}>b</button>
-            <button onClick={unorderedList}>ul</button>
+        <div id="wysiwyg">
+            <div>
+                <button onClick={italicize}>i</button>
+                <button onClick={bold}>b</button>
+                <button onClick={unorderedList}>ul</button>
+                <button onClick={orderedList}>ol</button>
+            </div>
             <textarea className="wysiwyg-editor" name="wysiwyg" value={textAreaText} onChange={handleChange}></textarea>
             <div dangerouslySetInnerHTML={{__html: textAreaText}} />
             <ul>
@@ -155,6 +197,6 @@ export const Wysiwyg = () => {
                     <li key={index}>{item.selectedText} {item.tag}</li>
                 )}
             </ul>
-        </>
+        </div>
     )
 }
