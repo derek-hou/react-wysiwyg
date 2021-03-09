@@ -78,6 +78,8 @@ export const Wysiwyg = () => {
             } else {
                 rtnStr = `<${tag}><li>${str}</li></${tag}>`;
             }
+        } else if(tag === 'a') {
+            rtnStr = `<${tag} href="${str}">${str}</${tag}>`;
         } else {
             rtnStr = `<${tag}>${str}</${tag}>`;
         }
@@ -107,9 +109,9 @@ export const Wysiwyg = () => {
     let italicize = () => {
         try {
             if(selectedText.length > 0) { // check if any text is selected
-                let italicText = addHtmlTag(selectedText, 'i');
+                let italicText = addHtmlTag(selectedText, 'em');
                 updateTextArea(italicText);
-                setHistory(selectedText, 'i');
+                setHistory(selectedText, 'em');
                 selectedText = '';
             } else {
                 throw new Error('selectedText is empty');
@@ -122,9 +124,9 @@ export const Wysiwyg = () => {
     let bold = () => {
         try {
             if(selectedText.length > 0) { // check if any text is selected
-                let boldText = addHtmlTag(selectedText, 'b');
+                let boldText = addHtmlTag(selectedText, 'strong');
                 updateTextArea(boldText);
-                setHistory(selectedText, 'b');
+                setHistory(selectedText, 'strong');
                 selectedText = '';
             } else {
                 throw new Error('selectedText is empty');
@@ -164,6 +166,21 @@ export const Wysiwyg = () => {
         }
     }
 
+    let anchor = () => {
+        try {
+            if(selectedText.length > 0) { // check if any text is selected
+                let listText = addHtmlTag(selectedText, 'a');
+                updateTextArea(listText);
+                setHistory(selectedText, 'a');
+                selectedText = '';
+            } else {
+                throw new Error('selectedText is empty');
+            }
+        } catch(err) {
+            console.error(err);
+        }
+    }
+
     let handleKeyPressed = (e) => {
         //e.stopPropagation();
         if(e.type === 'keydown' || e.type === 'keyup') {
@@ -189,6 +206,7 @@ export const Wysiwyg = () => {
                 <button onClick={bold}>b</button>
                 <button onClick={unorderedList}>ul</button>
                 <button onClick={orderedList}>ol</button>
+                <button onClick={anchor}>a</button>
             </div>
             <textarea className="wysiwyg-editor" name="wysiwyg" value={textAreaText} onChange={handleChange}></textarea>
             <div dangerouslySetInnerHTML={{__html: textAreaText}} />
